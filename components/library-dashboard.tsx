@@ -7,6 +7,7 @@ import { BookCatalog } from "./book-catalog"
 import { UserProfile } from "./user-profile"
 import { BorrowHistory } from "./borrow-history"
 import { TransactionTracker, type Transaction } from "./transaction-tracker"
+import { NFTLibraryCard } from "./nft-library-card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -188,6 +189,7 @@ export function LibraryDashboard() {
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-4">
             <WalletConnection />
+            {isConnected && <NFTLibraryCard key={`nft-card-${refreshKey}`} />}
             {transactions.length > 0 && <TransactionTracker transactions={transactions} />}
           </div>
 

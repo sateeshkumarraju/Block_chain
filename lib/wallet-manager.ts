@@ -456,6 +456,97 @@ export class WalletManager {
     console.log("[v0] Book added successfully, hash:", hash)
     return hash
   }
+
+  // NFT Library Card Methods
+  async mintLibraryCard(): Promise<{ tokenId: number; transactionHash: string }> {
+    if (!this.currentUser) throw new Error("Wallet not connected")
+
+    console.log("[v0] ═══════════════════════════════════════════════════════════")
+    console.log("[v0] 🎴 MINT LIBRARY CARD REQUEST")
+    console.log("[v0] Wallet:", this.currentUser)
+    console.log("[v0] ═══════════════════════════════════════════════════════════")
+
+    // If MetaMask is available, request signature confirmation
+    if (window.ethereum) {
+      try {
+        const message = `Library System - NFT Card Minting\n\nAction: Mint Library Card\nWallet: ${this.currentUser}\nTimestamp: ${new Date().toISOString()}\n\nSign this message to mint your NFT library card.`
+        
+        console.log("[v0] 🦊 METAMASK: Requesting signature for card minting...")
+        
+        const signature = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [message, this.currentUser],
+        })
+        
+        console.log("[v0] ✅ METAMASK SIGNATURE CONFIRMED!")
+        console.log("[v0] 🎴 Minting library card...")
+        
+        // Mint the card in mock contract
+        const result = await mockLibraryContract.mintLibraryCard(this.currentUser)
+        console.log("[v0] ✅ Library card minted! Token ID:", result.tokenId)
+        
+        return result
+        
+      } catch (error: any) {
+        if (error.code === 4001 || error.message?.includes('rejected')) {
+          throw new Error("Transaction rejected in MetaMask")
+        }
+        console.log("[v0] ⚠️ MetaMask error, using mock mode:", error.message)
+      }
+    }
+    
+    // Mock mode fallback
+    return await mockLibraryContract.mintLibraryCard(this.currentUser)
+  }
+
+  async renewLibraryCardNFT(): Promise<{ transactionHash: string }> {
+    if (!this.currentUser) throw new Error("Wallet not connected")
+
+    console.log("[v0] ═══════════════════════════════════════════════════════════")
+    console.log("[v0] 🔄 RENEW LIBRARY CARD REQUEST")
+    console.log("[v0] Wallet:", this.currentUser)
+    console.log("[v0] ═══════════════════════════════════════════════════════════")
+
+    // If MetaMask is available, request signature confirmation
+    if (window.ethereum) {
+      try {
+        const message = `Library System - NFT Card Renewal\n\nAction: Renew Library Card\nWallet: ${this.currentUser}\nTimestamp: ${new Date().toISOString()}\n\nSign this message to renew your NFT library card.`
+        
+        console.log("[v0] 🦊 METAMASK: Requesting signature for card renewal...")
+        
+        const signature = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [message, this.currentUser],
+        })
+        
+        console.log("[v0] ✅ METAMASK SIGNATURE CONFIRMED!")
+        console.log("[v0] 🔄 Renewing library card...")
+        
+        // Renew the card in mock contract
+        const result = await mockLibraryContract.renewLibraryCard(this.currentUser)
+        console.log("[v0] ✅ Library card renewed!")
+        
+        return result
+        
+      } catch (error: any) {
+        if (error.code === 4001 || error.message?.includes('rejected')) {
+          throw new Error("Transaction rejected in MetaMask")
+        }
+        console.log("[v0] ⚠️ MetaMask error, using mock mode:", error.message)
+      }
+    }
+    
+    // Mock mode fallback
+    return await mockLibraryContract.renewLibraryCard(this.currentUser)
+  }
+
+  async getLibraryCard(): Promise<any> {
+    if (!this.currentUser) throw new Error("Wallet not connected")
+
+    console.log("[v0] Fetching library card for:", this.currentUser)
+    
+    return await mockLibraryContract.getLibraryCard(this.currentUser)
+  }
 }
 
 export const walletManager = new WalletManager()

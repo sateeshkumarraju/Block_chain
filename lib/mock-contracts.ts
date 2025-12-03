@@ -28,6 +28,15 @@ export interface BorrowRecord {
   status: "borrowed" | "returned" | "overdue"
 }
 
+export interface LibraryCard {
+  tokenId: number
+  holder: string
+  issueDate: number
+  expiryDate: number
+  borrowCount: number
+  isValid: boolean
+}
+
 class MockLibraryContract {
   private books: Book[] = [
     { id: 0, title: "Blockchain Basics", author: "John Doe", isbn: "ISBN001", available: 5, total: 5, borrowFee: 0 },
@@ -40,6 +49,8 @@ class MockLibraryContract {
 
   private users: Map<string, UserProfile> = new Map()
   private borrowRecords: BorrowRecord[] = []
+  private libraryCards: Map<string, LibraryCard> = new Map()
+  private nextCardId = 1
   private nextRecordId = 0
 
   private getOrCreateUser(address: string): UserProfile {
@@ -200,6 +211,89 @@ class MockLibraryContract {
         .map(() => Math.floor(Math.random() * 16).toString(16))
         .join("")
     return hash
+  }
+
+  // NFT Library Card Methods
+  async mintLibraryCard(userAddress: string): Promise<{ tokenId: number; transactionHash: string }> {
+    if (this.libraryCards.has(userAddress)) {
+      throw new Error("User already has a library card")
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    const expiryDate = now + 365 * 24 * 60 * 60 // 1 year validity
+
+    const card: LibraryCard = {
+      tokenId: this.nextCardId++,
+      holder: userAddress,
+      issueDate: now,
+      expiryDate,
+      borrowCount: 0,
+      isValid: true
+    }
+
+    this.libraryCards.set(userAddress, card)
+    
+    // Update user profile
+    const user = this.getOrCreateUser(userAddress)
+    user.hasLibraryCard = true
+
+    console.log("[v0] Mock: Minted library card:", card)
+
+    // Generate transaction hash
+    const hash =
+      "0x" +
+      Array(64)
+        .fill(0)
+        .map(() => Math.floor(Math.random() * 16).toString(16))
+        .join("")
+
+    return { tokenId: card.tokenId, transactionHash: hash }
+  }
+
+  async renewLibraryCard(userAddress: string): Promise<{ transactionHash: string }> {
+    const card = this.libraryCards.get(userAddress)
+    if (!card) {
+      throw new Error("No library card found for this user")
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    card.expiryDate = now + 365 * 24 * 60 * 60 // Extend by 1 year
+    card.isValid = true
+
+    console.log("[v0] Mock: Renewed library card:", card)
+
+    // Generate transaction hash
+    const hash =
+      "0x" +
+      Array(64)
+        .fill(0)
+        .map(() => Math.floor(Math.random() * 16).toString(16))
+        .join("")
+
+    return { transactionHash: hash }
+  }
+
+  async getLibraryCard(userAddress: string): Promise<LibraryCard | null> {
+    const card = this.libraryCards.get(userAddress)
+    if (!card) return null
+
+    // Update validity status
+    const now = Math.floor(Date.now() / 1000)
+    card.isValid = card.expiryDate > now
+
+    // Update borrow count from user profile
+    const user = this.getOrCreateUser(userAddress)
+    card.borrowCount = user.totalBorrowed
+
+    return card
+  }
+
+  async isCardValid(userAddress: string): Promise<boolean> {
+    const card = this.libraryCards.get(userAddress)
+    if (!card) return false
+    
+    const now = Math.floor(Date.now() / 1000)
+    return card.expiryDate > now
   }
 }
 
