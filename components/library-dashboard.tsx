@@ -7,6 +7,10 @@ import { BookCatalog } from "./book-catalog"
 import { UserProfile } from "./user-profile"
 import { BorrowHistory } from "./borrow-history"
 import { TransactionTracker, type Transaction } from "./transaction-tracker"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 export function LibraryDashboard() {
   const { isConnected, walletManager } = useWallet()
@@ -15,6 +19,16 @@ export function LibraryDashboard() {
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  
+  // Add Book Dialog State
+  const [addBookOpen, setAddBookOpen] = useState(false)
+  const [newBook, setNewBook] = useState({
+    title: "",
+    author: "",
+    isbn: "",
+    total: 1,
+    borrowFee: 0
+  })
 
   const showNotification = (type: "success" | "error", message: string) => {
     setNotification({ type, message })
@@ -121,20 +135,30 @@ export function LibraryDashboard() {
     }
   }
 
-  // Enable mock mode for testing and auto-refresh data
+  // Enable mock mode for testing - NO auto-refresh to prevent blinking
   useEffect(() => {
     // NOTE: Only set mock mode if user hasn't connected MetaMask yet
     if (!isConnected && localStorage.getItem("useMockContracts") === null) {
       localStorage.setItem("useMockContracts", "true")
     }
-    
-    // Auto-refresh every 1.5 seconds to show updates
-    const interval = setInterval(() => {
-      setRefreshKey((k) => k + 1)
-    }, 1500)
-    
-    return () => clearInterval(interval)
   }, [isConnected])
+
+  const handleAddBook = async () => {
+    if (!newBook.title || !newBook.author) {
+      showNotification("error", "Please fill in title and author")
+      return
+    }
+    
+    try {
+      await walletManager.addBook(newBook)
+      showNotification("success", `✅ Book "${newBook.title}" added successfully!`)
+      setAddBookOpen(false)
+      setNewBook({ title: "", author: "", isbn: "", total: 1, borrowFee: 0 })
+      setRefreshKey((k) => k + 1) // Refresh to show new book
+    } catch (err: any) {
+      showNotification("error", `Failed to add book: ${err.message}`)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-4 md:p-8">
@@ -174,8 +198,15 @@ export function LibraryDashboard() {
 
             {/* Book Catalog */}
             <div>
-              <h2 className="text-2xl font-bold mb-4">Available Books</h2>
-              <BookCatalog onBorrow={handleBorrow} />
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold">Available Books</h2>
+                {isConnected && (
+                  <Button onClick={() => setAddBookOpen(true)} className="bg-green-600 hover:bg-green-700">
+                    ➕ Add Book
+                  </Button>
+                )}
+              </div>
+              <BookCatalog key={`catalog-${refreshKey}`} onBorrow={handleBorrow} />
             </div>
 
             {/* Borrow History */}
@@ -188,6 +219,80 @@ export function LibraryDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Add Book Dialog */}
+      <Dialog open={addBookOpen} onOpenChange={setAddBookOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>➕ Add New Book</DialogTitle>
+            <DialogDescription>
+              Add a new book to the library catalog.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title">Book Title *</Label>
+              <Input
+                id="title"
+                placeholder="Enter book title"
+                value={newBook.title}
+                onChange={(e) => setNewBook({ ...newBook, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="author">Author *</Label>
+              <Input
+                id="author"
+                placeholder="Enter author name"
+                value={newBook.author}
+                onChange={(e) => setNewBook({ ...newBook, author: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="isbn">ISBN</Label>
+              <Input
+                id="isbn"
+                placeholder="Enter ISBN (optional)"
+                value={newBook.isbn}
+                onChange={(e) => setNewBook({ ...newBook, isbn: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="total">Total Copies</Label>
+                <Input
+                  id="total"
+                  type="number"
+                  min="1"
+                  value={newBook.total}
+                  onChange={(e) => setNewBook({ ...newBook, total: parseInt(e.target.value) || 1 })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="fee">Borrow Fee (ETH)</Label>
+                <Input
+                  id="fee"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newBook.borrowFee}
+                  onChange={(e) => setNewBook({ ...newBook, borrowFee: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddBookOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddBook} className="bg-green-600 hover:bg-green-700">
+              Add Book
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

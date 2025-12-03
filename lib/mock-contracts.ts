@@ -177,6 +177,30 @@ class MockLibraryContract {
       .filter((r) => r.userAddress === address && r.status === "overdue")
       .reduce((sum, r) => sum + r.fee, 0)
   }
+
+  async addBook(book: { title: string; author: string; isbn: string; total: number; borrowFee: number }): Promise<string> {
+    const newId = this.books.length
+    const newBook: Book = {
+      id: newId,
+      title: book.title,
+      author: book.author,
+      isbn: book.isbn || `ISBN${String(newId + 1).padStart(3, '0')}`,
+      available: book.total,
+      total: book.total,
+      borrowFee: book.borrowFee
+    }
+    this.books.push(newBook)
+    console.log("[v0] Mock: Added new book:", newBook)
+    
+    // Generate transaction hash
+    const hash =
+      "0x" +
+      Array(64)
+        .fill(0)
+        .map(() => Math.floor(Math.random() * 16).toString(16))
+        .join("")
+    return hash
+  }
 }
 
 export const mockLibraryContract = new MockLibraryContract()

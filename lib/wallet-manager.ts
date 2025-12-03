@@ -445,6 +445,17 @@ export class WalletManager {
       }
     }
   }
+
+  async addBook(book: { title: string; author: string; isbn: string; total: number; borrowFee: number }): Promise<string> {
+    if (!this.currentUser) throw new Error("Wallet not connected")
+
+    console.log("[v0] Adding new book:", book.title)
+    
+    // Use mock contract to add book
+    const hash = await mockLibraryContract.addBook(book)
+    console.log("[v0] Book added successfully, hash:", hash)
+    return hash
+  }
 }
 
 export const walletManager = new WalletManager()
